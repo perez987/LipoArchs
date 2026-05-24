@@ -17,3 +17,4 @@ Minimal macOS SwiftUI app for displaying the architecture(s) of a dropped execut
 - `.app` bundles are resolved to `Contents/MacOS/<CFBundleExecutable>`
 - The window keeps the detected architectures visible in the interface
 - An alert also reports whether inspection succeeded or failed, then closes after 4 seconds
+- There is language support with automatic system language detection (English and Spanish for now)

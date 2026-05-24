@@ -64,7 +64,8 @@ struct ContentView: View {
             alignment: .topLeading
         )
         .alert(alertTitle, isPresented: $showsAlert) {
-            Button("OK", role: .cancel) {}
+//            Button("OK", role: .cancel) {}
+            Button("OK") {}
         } message: {
             Text(alertMessage)
         }

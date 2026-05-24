@@ -4,7 +4,7 @@
 ![Swift](https://img.shields.io/badge/Swift-5-blue.svg)
 ![Xcode](https://img.shields.io/badge/Xcode-15-lavender.svg)
 
-Minimal macOS SwiftUI app for displaying the architecture(s) of a dropped executable, dynamic library, or `.app` bundle.
+Minimal macOS SwiftUI app for displaying the architecture(s) of a dropped executable, dynamic library, or `.app` bundle in a graphical way.
 
 ![Main window](Images/Window-1.png)
 
@@ -21,7 +21,7 @@ Minimal macOS SwiftUI app for displaying the architecture(s) of a dropped execut
 - `.app` bundles are resolved to `Contents/MacOS/<CFBundleExecutable>`
 - The window keeps the detected architectures visible in the interface
 - An alert also reports whether inspection succeeded or failed, then closes after 4 seconds
-- There is language support with automatic system language detection (English and Spanish for now)
+- There is language support with automatic system language detection (English and Spanish for now).
 
 ## Motivation
 

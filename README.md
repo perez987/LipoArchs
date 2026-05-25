@@ -25,7 +25,7 @@ Minimal macOS SwiftUI app for displaying the architecture(s) of a dropped execut
 
 ## Motivation
 
-There's a command in macOS, `lipo`, which, when accompanied by the `-archs` argument, displays the architecture(s) of an executable or library (e.g., `x86_64` is Apple Intel, `arm64` is Apple Silicon).
+In macOS there is a command called `lipo` which, followed by the argument `-archs`, shows the architecture(s) of an executable or library (e.g., `x86_64` is Apple Intel, `arm64` is Apple Silicon).
 
 While using this command is simple, it requires displaying the contents of an application, since the executable located in Contents/MacOS needs to be passed to `lipo`.
 

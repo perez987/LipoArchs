@@ -21,7 +21,7 @@
 "Couldn't locate an executable inside %@. Drop the app's binary from Contents/MacOS instead." = "No se pudo encontrar un ejecutable dentro de %@. Suelta en su lugar el binario de la app desde Contents/MacOS.";
 "The dropped file is not a supported Mach-O executable or library." = "El archivo seleccionado no es un ejecutable Mach-O ni una biblioteca compatible.";
 "The dropped file is too small to contain a valid Mach-O header." = "El archivo seleccionado es demasiado pequeño para contener una cabecera Mach-O válida.";
-"Intel and Silicon" = "Intel and Silicon";
-"Intel only" = "Intel only";
-"Silicon only" = "Silicon only";
-"No supported Intel/Silicon architecture information is available for this file." = "No hay información de arquitectura Intel/Silicon compatible disponible para este archivo.";
+"Intel and Silicon" = "Intel (x86_64) y Silicon (arm64)";
+"Intel only" = "Intel (x86_64)";
+"Silicon only" = "Silicon (arm64)";
+"No supported Intel/Silicon architecture information is available for this file." = "No hay información de arquitectura Intel/Silicon disponible para este archivo.";

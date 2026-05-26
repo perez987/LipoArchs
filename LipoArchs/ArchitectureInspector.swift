@@ -167,43 +167,43 @@ enum ArchitectureInspector {
         default:
             return "cpu(\(cpuType), subtype: \(subtype))"
         }
+    }
 
-        private static func displayArchitectureLabel(from architectures: [String]) -> String? {
-            guard !architectures.isEmpty else {
-                return nil
+    private static func displayArchitectureLabel(from architectures: [String]) -> String? {
+        guard !architectures.isEmpty else {
+            return nil
+        }
+
+        var hasIntel = false
+        var hasSilicon = false
+
+        for architecture in architectures {
+            if ["i386", "x86_64", "x86_64h"].contains(architecture) {
+                hasIntel = true
+                continue
             }
 
-            var hasIntel = false
-            var hasSilicon = false
-
-            for architecture in architectures {
-                if ["i386", "x86_64", "x86_64h"].contains(architecture) {
-                    hasIntel = true
-                    continue
-                }
-
-                if ["arm64", "arm64e"].contains(architecture) {
-                    hasSilicon = true
-                    continue
-                }
-
-                return nil
-            }
-
-            if hasIntel && hasSilicon {
-                return NSLocalizedString("Intel and Silicon", comment: "Both Intel and Silicon architectures")
-            }
-
-            if hasIntel {
-                return NSLocalizedString("Intel only", comment: "Intel architecture only")
-            }
-
-            if hasSilicon {
-                return NSLocalizedString("Silicon only", comment: "Silicon architecture only")
+            if ["arm64", "arm64e"].contains(architecture) {
+                hasSilicon = true
+                continue
             }
 
             return nil
         }
+
+        if hasIntel && hasSilicon {
+            return NSLocalizedString("Intel and Silicon", comment: "Both Intel and Silicon architectures")
+        }
+
+        if hasIntel {
+            return NSLocalizedString("Intel only", comment: "Intel architecture only")
+        }
+
+        if hasSilicon {
+            return NSLocalizedString("Silicon only", comment: "Silicon architecture only")
+        }
+
+        return nil
     }
 }
 

@@ -38,6 +38,7 @@ enum ArchitectureInspectionError: LocalizedError, Equatable {
     case missingBundleExecutable(URL)
     case unsupportedFileFormat
     case fileTooSmall
+    case unsupportedArchitectureSet
 
     var errorDescription: String? {
         switch self {
@@ -63,6 +64,8 @@ enum ArchitectureInspectionError: LocalizedError, Equatable {
             return (NSLocalizedString("The dropped file is not a supported Mach-O executable or library.", comment: "No Mach-O file"))
         case .fileTooSmall:
             return (NSLocalizedString("The dropped file is too small to contain a valid Mach-O header.", comment: "File too small"))
+        case .unsupportedArchitectureSet:
+            return (NSLocalizedString("No supported Intel/Silicon architecture information is available for this file.", comment: "Unsupported architecture set"))
         }
     }
 }
@@ -87,17 +90,25 @@ enum ArchitectureInspector {
         let data = try Data(contentsOf: fileURL, options: [.mappedIfSafe])
         let format = try BinaryFormat.detect(in: data)
 
+        let rawArchitectures: [String]
+
         switch format {
         case .thin(let byteOrder):
-            return [architectureName(
+            rawArchitectures = [architectureName(
                 cpuType: try data.readInt32(at: 4, byteOrder: byteOrder),
                 cpuSubtype: try data.readInt32(at: 8, byteOrder: byteOrder)
             )]
         case .fat32(let byteOrder):
-            return try architecturesFromFatBinary(data: data, byteOrder: byteOrder, entrySize: 20)
+            rawArchitectures = try architecturesFromFatBinary(data: data, byteOrder: byteOrder, entrySize: 20)
         case .fat64(let byteOrder):
-            return try architecturesFromFatBinary(data: data, byteOrder: byteOrder, entrySize: 32)
+            rawArchitectures = try architecturesFromFatBinary(data: data, byteOrder: byteOrder, entrySize: 32)
         }
+
+        guard let displayLabel = displayArchitectureLabel(from: rawArchitectures) else {
+            throw ArchitectureInspectionError.unsupportedArchitectureSet
+        }
+
+        return [displayLabel]
     }
 
     private static func architecturesFromFatBinary(
@@ -155,6 +166,43 @@ enum ArchitectureInspector {
             return "ppc64"
         default:
             return "cpu(\(cpuType), subtype: \(subtype))"
+        }
+
+        private static func displayArchitectureLabel(from architectures: [String]) -> String? {
+            guard !architectures.isEmpty else {
+                return nil
+            }
+
+            var hasIntel = false
+            var hasSilicon = false
+
+            for architecture in architectures {
+                if ["i386", "x86_64", "x86_64h"].contains(architecture) {
+                    hasIntel = true
+                    continue
+                }
+
+                if ["arm64", "arm64e"].contains(architecture) {
+                    hasSilicon = true
+                    continue
+                }
+
+                return nil
+            }
+
+            if hasIntel && hasSilicon {
+                return NSLocalizedString("Intel and Silicon", comment: "Both Intel and Silicon architectures")
+            }
+
+            if hasIntel {
+                return NSLocalizedString("Intel only", comment: "Intel architecture only")
+            }
+
+            if hasSilicon {
+                return NSLocalizedString("Silicon only", comment: "Silicon architecture only")
+            }
+
+            return nil
         }
     }
 }

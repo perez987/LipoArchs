@@ -2,56 +2,65 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct ContentView: View {
+    private struct LoadedDropItem {
+        let index: Int
+        let url: URL?
+    }
+
     @State private var isDropTargeted = false
 //    @State private var selectedItemName = NSLocalizedString("No file selected", comment: "No file selected")
-    @State private var selectedItemName = "—"
-    @State private var resolvedBinaryPath = "—"
-    @State private var architectureSummary = "—"
+    @State private var selectedItemName = ""
+    @State private var resolvedBinaryPath = ""
+    @State private var architectureSummary = ""
     @State private var alertTitle = ""
     @State private var alertMessage = ""
     @State private var showsAlert = false
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            Text("LipoArchs")
-                .font(.largeTitle.bold())
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                Text("LipoArchs")
+                    .font(.largeTitle.bold())
 
-            Text("Drag a macOS executable, dynamic library, or .app\nbundle into the drop area to display its architecture.")
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+                Text("Drag one or more macOS executables, dynamic libraries, or .app\nbundles into the drop area to display their architectures.")
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
 
-            dropArea
-
-            Divider()
-
-            LabeledContent("Architecture:") {
-                Text(architectureSummary)
-                    .font(.headline)
-                    .textSelection(.enabled)
-            }
-
-            Divider()
-
-            VStack(alignment: .leading, spacing: 10) {
-                LabeledContent("Selected Item:") {
-                    Text(selectedItemName)
-                        .textSelection(.enabled)
-                }
-                .padding(.bottom, 10)
+                dropArea
 
                 Divider()
 
-                LabeledContent("Resolved Binary:") {
-                    Text(resolvedBinaryPath)
-                        .foregroundStyle(.secondary)
+                LabeledContent("") {
+                    Text(architectureSummary)
+                        .font(.headline)
                         .fixedSize(horizontal: false, vertical: true)
                         .textSelection(.enabled)
                 }
-                .padding(.top, 12)
 
+                Divider()
+
+                VStack(alignment: .leading, spacing: 10) {
+                    LabeledContent("Selected Items:") {
+                        Text(selectedItemName)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .textSelection(.enabled)
+                    }
+                    .padding(.bottom, 10)
+
+                    Divider()
+
+                    LabeledContent("Resolved Binaries:") {
+                        Text(resolvedBinaryPath)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .textSelection(.enabled)
+                    }
+                    .padding(.top, 12)
+
+                }
+
+                Spacer(minLength: 0)
             }
-
-            Spacer(minLength: 0)
         }
         .padding(24)
         .frame(
@@ -72,7 +81,7 @@ struct ContentView: View {
         .task(id: showsAlert) {
              guard showsAlert else { return }
 
-             try? await Task.sleep(for: .seconds(3))
+             try? await Task.sleep(for: .seconds(5))
 
              guard showsAlert else { return }
              showsAlert = false
@@ -94,7 +103,7 @@ struct ContentView: View {
                 VStack(spacing: 10) {
                     Image(systemName: "square.and.arrow.down.on.square")
                         .font(.system(size: 34))
-                    Text("Drop File Here")
+                    Text("Drop Files Here")
                         .font(.title3.weight(.semibold))
                     Text(".app bundles are resolved to Contents/MacOS automatically.")
                         .foregroundStyle(.secondary)
@@ -111,44 +120,100 @@ struct ContentView: View {
     }
 
     private func handleDrop(providers: [NSItemProvider]) -> Bool {
-        guard let provider = providers.first(where: { $0.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) }) else {
+        let fileProviders = providers.filter { $0.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) }
+
+        guard !fileProviders.isEmpty else {
             presentAlert(
                 title: NSLocalizedString("No File Found", comment: "No file found"),
-                message: NSLocalizedString("Drop a single file or .app bundle from Finder.", comment: "Drop hint")
+                message: NSLocalizedString("Drop one or more files or .app bundles from Finder.", comment: "Drop hint")
             )
             return false
         }
 
-        provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, _ in
-            let url = Self.fileURL(from: item)
-            DispatchQueue.main.async {
-                guard let url else {
-                    presentAlert(
-                        title: NSLocalizedString("Couldn't Read Drop", comment: "Couldn't read drop"),
-                        message: NSLocalizedString("The dropped item was not a valid file URL.", comment: "Invalid dropped URL")
-                    )
-                    return
+        let loadedItemsQueue = DispatchQueue(label: "LipoArchs.loaded-items")
+        var loadedItems = Array<LoadedDropItem?>(repeating: nil, count: fileProviders.count)
+        let group = DispatchGroup()
+
+        for (index, provider) in fileProviders.enumerated() {
+            group.enter()
+            provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, _ in
+                let url = Self.fileURL(from: item)
+                loadedItemsQueue.sync {
+                    loadedItems[index] = LoadedDropItem(index: index, url: url)
                 }
-                inspect(url: url)
+                group.leave()
             }
+        }
+
+        group.notify(queue: .main) {
+            self.inspect(items: loadedItems.compactMap { $0 }.sorted { $0.index < $1.index })
         }
 
         return true
     }
 
-    private func inspect(url: URL) {
-        selectedItemName = url.lastPathComponent
+    private func inspect(items: [LoadedDropItem]) {
+        let droppedNames = items.compactMap { $0.url?.lastPathComponent }
+        selectedItemName = droppedNames.isEmpty ? "—" : droppedNames.joined(separator: "\n")
 
-        do {
-            let result = try ArchitectureInspector.inspect(url: url)
-            resolvedBinaryPath = result.resolvedURL.path
-            architectureSummary = result.labelText
-            presentAlert(title: (NSLocalizedString("Inspection Complete", comment: "Inspection complete")), message: result.alertMessage)
-        } catch {
+        var successfulResults: [InspectionResult] = []
+        var failedEntries: [String] = []
+
+        for item in items {
+            guard let url = item.url else {
+                failedEntries.append(
+                    String(
+                        format: NSLocalizedString("• %@", comment: "Unreadable dropped item entry"),
+                        locale: Locale.current,
+                        NSLocalizedString("The dropped item was not a valid file URL.", comment: "Invalid dropped URL")
+                    )
+                )
+                continue
+            }
+
+            do {
+                successfulResults.append(try ArchitectureInspector.inspect(url: url))
+            } catch {
+                failedEntries.append(
+                    String(
+                        format: NSLocalizedString("• %@: %@", comment: "Failed inspection entry"),
+                        locale: Locale.current,
+                        url.lastPathComponent,
+                        error.localizedDescription
+                    )
+                )
+            }
+        }
+
+        guard !successfulResults.isEmpty else {
             resolvedBinaryPath = "—"
             architectureSummary = NSLocalizedString("No architecture information available", comment: "No architecture information available")
-            presentAlert(title: NSLocalizedString("Couldn't Inspect File", comment: "Couldn't Inspect File"), message: error.localizedDescription)
+            presentAlert(
+                title: NSLocalizedString("Couldn't Inspect Files", comment: "Couldn't inspect files"),
+                message: failedEntries.joined(separator: "\n")
+            )
+            return
         }
+
+        resolvedBinaryPath = successfulResults
+            .map(\.resolvedURL.path)
+            .joined(separator: "\n")
+        architectureSummary = successfulResults
+            .map(\.summaryLine)
+            .joined(separator: "\n")
+
+        let successSection = ([NSLocalizedString("Detected architectures:", comment: "Detected architectures header")] + successfulResults.map(\.alertListEntry))
+            .joined(separator: "\n")
+        let failureSection = failedEntries.isEmpty
+            ? nil
+            : ([NSLocalizedString("Issues:", comment: "Issues header")] + failedEntries).joined(separator: "\n")
+
+        let alertSections = [successSection, failureSection].compactMap { $0 }
+        let alertTitle = failedEntries.isEmpty
+            ? NSLocalizedString("Inspection Complete", comment: "Inspection complete")
+            : NSLocalizedString("Inspection Completed with Errors", comment: "Inspection completed with errors")
+
+        presentAlert(title: alertTitle, message: alertSections.joined(separator: "\n\n"))
     }
 
     private func presentAlert(title: String, message: String) {

@@ -9,6 +9,34 @@ struct InspectionResult: Equatable {
         architectures.joined(separator: ", ")
     }
 
+    var summaryLine: String {
+        String(
+            format: NSLocalizedString("%@ — %@", comment: "Summary line for a dropped item and its architecture label"),
+            locale: Locale.current,
+            droppedURL.lastPathComponent,
+            labelText
+        )
+    }
+
+    var alertListEntry: String {
+        if droppedURL.standardizedFileURL == resolvedURL.standardizedFileURL {
+            return String(
+                format: NSLocalizedString("• %@: %@", comment: "Successful inspection entry for a single dropped file"),
+                locale: Locale.current,
+                resolvedURL.lastPathComponent,
+                labelText
+            )
+        }
+
+        return String(
+            format: NSLocalizedString("• %@ → %@: %@", comment: "Successful inspection entry for a resolved app bundle"),
+            locale: Locale.current,
+            droppedURL.lastPathComponent,
+            resolvedURL.lastPathComponent,
+            labelText
+        )
+    }
+
     var alertMessage: String {
         if droppedURL.standardizedFileURL == resolvedURL.standardizedFileURL {
             return String(

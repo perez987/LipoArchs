@@ -17,10 +17,10 @@ Aplicación de macOS desarrollada en SwiftUI para mostrar la(s) arquitectura(s) 
 
 ## Comportamiento
 
-- Arrastra un ejecutable Mach-O, `.dylib` o paquete `.app` a la ventana.
+- Arrastra uno o más ejecutables Mach-O, archivos `.dylib` o paquetes `.app` a la ventana.
 - Los paquetes `.app` se resuelven a `Contents/MacOS/<CFBundleExecutable>`.
 - La ventana mantiene visibles en la interfaz las arquitecturas detectadas.
-- Una alerta también informa si la inspección se completó o falló, y se cierra después de 4 segundos.
+- Una única alerta agrupa los resultados de todos los elementos soltados e informa si hay los fallos.
 - Hay soporte de idiomas con detección automática del idioma del sistema (inglés y español por ahora).
 
 ## Motivación

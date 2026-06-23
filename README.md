@@ -17,10 +17,10 @@ Minimal macOS SwiftUI app for displaying the architecture(s) of a dropped execut
 
 ## Behavior
 
-- Drag a Mach-O executable, `.dylib`, or `.app` bundle onto the window
+- Drag one or more Mach-O executables, `.dylib` files, or `.app` bundles onto the window
 - `.app` bundles are resolved to `Contents/MacOS/<CFBundleExecutable>`
 - The window keeps the detected architectures visible in the interface
-- An alert also reports whether inspection succeeded or failed, then closes after 4 seconds
+- A single alert groups the results of all dropped items and reports any failures
 - There is language support with automatic system language detection (English and Spanish for now).
 
 ## Motivation

@@ -15,7 +15,7 @@ struct ContentView: View {
     @State private var alertTitle = ""
     @State private var alertMessage = ""
     @State private var showsAlert = false
-    
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
@@ -56,7 +56,6 @@ struct ContentView: View {
                             .textSelection(.enabled)
                     }
                     .padding(.top, 12)
-
                 }
 
                 Spacer(minLength: 0)
@@ -79,14 +78,13 @@ struct ContentView: View {
             Text(alertMessage)
         }
         .task(id: showsAlert) {
-             guard showsAlert else { return }
+            guard showsAlert else { return }
 
-             try? await Task.sleep(for: .seconds(5))
+            try? await Task.sleep(for: .seconds(5))
 
-             guard showsAlert else { return }
-             showsAlert = false
-         }
-
+            guard showsAlert else { return }
+            showsAlert = false
+        }
     }
 
     private var dropArea: some View {
@@ -131,7 +129,7 @@ struct ContentView: View {
         }
 
         let loadedItemsQueue = DispatchQueue(label: "LipoArchs.loaded-items")
-        var loadedItems = Array<LoadedDropItem?>(repeating: nil, count: fileProviders.count)
+        var loadedItems = [LoadedDropItem?](repeating: nil, count: fileProviders.count)
         let group = DispatchGroup()
 
         for (index, provider) in fileProviders.enumerated() {
@@ -172,7 +170,7 @@ struct ContentView: View {
             }
 
             do {
-                successfulResults.append(try ArchitectureInspector.inspect(url: url))
+                try successfulResults.append(ArchitectureInspector.inspect(url: url))
             } catch {
                 failedEntries.append(
                     String(

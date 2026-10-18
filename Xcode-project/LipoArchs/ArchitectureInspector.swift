@@ -70,30 +70,30 @@ enum ArchitectureInspectionError: LocalizedError, Equatable {
 
     var errorDescription: String? {
         switch self {
-        case .fileNotFound(let url):
+        case let .fileNotFound(url):
             return String(
                 format: NSLocalizedString("The dropped item could not be found at %@.", comment: "Dropped item not found"),
                 locale: Locale.current,
                 url.path
             )
-        case .unsupportedContainer(let url):
+        case let .unsupportedContainer(url):
             return String(
                 format: NSLocalizedString("Drop a Mach-O executable, library, or a .app bundle. %@ is not supported.", comment: "No executable, library or app"),
                 locale: Locale.current,
                 url.lastPathComponent
             )
-        case .missingBundleExecutable(let url):
+        case let .missingBundleExecutable(url):
             return String(
                 format: NSLocalizedString("Couldn't locate an executable inside %@. Drop the app's binary from Contents/MacOS instead.", comment: "No executable"),
                 locale: Locale.current,
                 url.lastPathComponent
             )
         case .unsupportedFileFormat:
-            return (NSLocalizedString("The dropped file is not a supported Mach-O executable or library.", comment: "No Mach-O file"))
+            return NSLocalizedString("The dropped file is not a supported Mach-O executable or library.", comment: "No Mach-O file")
         case .fileTooSmall:
-            return (NSLocalizedString("The dropped file is too small to contain a valid Mach-O header.", comment: "File too small"))
+            return NSLocalizedString("The dropped file is too small to contain a valid Mach-O header.", comment: "File too small")
         case .unsupportedArchitectureSet:
-            return (NSLocalizedString("No supported Intel/Silicon architecture information is available for this file.", comment: "Unsupported architecture set"))
+            return NSLocalizedString("No supported Intel/Silicon architecture information is available for this file.", comment: "Unsupported architecture set")
         }
     }
 }
@@ -121,14 +121,14 @@ enum ArchitectureInspector {
         let rawArchitectures: [String]
 
         switch format {
-        case .thin(let byteOrder):
-            rawArchitectures = [architectureName(
-                cpuType: try data.readInt32(at: 4, byteOrder: byteOrder),
-                cpuSubtype: try data.readInt32(at: 8, byteOrder: byteOrder)
+        case let .thin(byteOrder):
+            rawArchitectures = try [architectureName(
+                cpuType: data.readInt32(at: 4, byteOrder: byteOrder),
+                cpuSubtype: data.readInt32(at: 8, byteOrder: byteOrder)
             )]
-        case .fat32(let byteOrder):
+        case let .fat32(byteOrder):
             rawArchitectures = try architecturesFromFatBinary(data: data, byteOrder: byteOrder, entrySize: 20)
-        case .fat64(let byteOrder):
+        case let .fat64(byteOrder):
             rawArchitectures = try architecturesFromFatBinary(data: data, byteOrder: byteOrder, entrySize: 32)
         }
 
@@ -148,11 +148,11 @@ enum ArchitectureInspector {
         var result: [String] = []
         var seen = Set<String>()
 
-        for index in 0..<count {
+        for index in 0 ..< count {
             let offset = 8 + (index * entrySize)
-            let architecture = architectureName(
-                cpuType: try data.readInt32(at: offset, byteOrder: byteOrder),
-                cpuSubtype: try data.readInt32(at: offset + 4, byteOrder: byteOrder)
+            let architecture = try architectureName(
+                cpuType: data.readInt32(at: offset, byteOrder: byteOrder),
+                cpuSubtype: data.readInt32(at: offset + 4, byteOrder: byteOrder)
             )
 
             if seen.insert(architecture).inserted {
@@ -168,7 +168,7 @@ enum ArchitectureInspector {
     }
 
     private static func architectureName(cpuType: Int32, cpuSubtype: Int32) -> String {
-        let subtype = UInt32(bitPattern: cpuSubtype) & 0x00ff_ffff
+        let subtype = UInt32(bitPattern: cpuSubtype) & 0x00FF_FFFF
 
         switch cpuType {
         case 7:
@@ -186,7 +186,7 @@ enum ArchitectureInspector {
             default:
                 return "arm"
             }
-        case 0x0100_000c:
+        case 0x0100_000C:
             return subtype == 2 ? "arm64e" : "arm64"
         case 18:
             return "ppc"
@@ -219,7 +219,7 @@ enum ArchitectureInspector {
             return nil
         }
 
-        if hasIntel && hasSilicon {
+        if hasIntel, hasSilicon {
             return NSLocalizedString("Intel and Silicon", comment: "Both Intel and Silicon architectures")
         }
 
@@ -313,17 +313,17 @@ private enum BinaryFormat {
         let magic = Array(data.prefix(4))
 
         switch magic {
-        case [0xce, 0xfa, 0xed, 0xfe], [0xcf, 0xfa, 0xed, 0xfe]:
+        case [0xCE, 0xFA, 0xED, 0xFE], [0xCF, 0xFA, 0xED, 0xFE]:
             return .thin(.little)
-        case [0xfe, 0xed, 0xfa, 0xce], [0xfe, 0xed, 0xfa, 0xcf]:
+        case [0xFE, 0xED, 0xFA, 0xCE], [0xFE, 0xED, 0xFA, 0xCF]:
             return .thin(.big)
-        case [0xca, 0xfe, 0xba, 0xbe]:
+        case [0xCA, 0xFE, 0xBA, 0xBE]:
             return .fat32(.big)
-        case [0xbe, 0xba, 0xfe, 0xca]:
+        case [0xBE, 0xBA, 0xFE, 0xCA]:
             return .fat32(.little)
-        case [0xca, 0xfe, 0xba, 0xbf]:
+        case [0xCA, 0xFE, 0xBA, 0xBF]:
             return .fat64(.big)
-        case [0xbf, 0xba, 0xfe, 0xca]:
+        case [0xBF, 0xBA, 0xFE, 0xCA]:
             return .fat64(.little)
         default:
             throw ArchitectureInspectionError.unsupportedFileFormat
@@ -356,6 +356,6 @@ private extension Data {
     }
 
     func readInt32(at offset: Int, byteOrder: ByteOrder) throws -> Int32 {
-        Int32(bitPattern: try readUInt32(at: offset, byteOrder: byteOrder))
+        try Int32(bitPattern: readUInt32(at: offset, byteOrder: byteOrder))
     }
 }

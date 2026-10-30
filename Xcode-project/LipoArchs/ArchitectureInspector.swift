@@ -11,7 +11,11 @@ struct InspectionResult: Equatable {
 
     var summaryLine: String {
         String(
-            format: NSLocalizedString("%@ — %@", comment: "Summary line for a dropped item and its architecture label"),
+            format: NSLocalizedString(
+                "%@ — %@",
+                comment:
+                    "Summary line for a dropped item and its architecture label"
+            ),
             locale: Locale.current,
             droppedURL.lastPathComponent,
             labelText
@@ -21,7 +25,11 @@ struct InspectionResult: Equatable {
     var alertListEntry: String {
         if droppedURL.standardizedFileURL == resolvedURL.standardizedFileURL {
             return String(
-                format: NSLocalizedString("• %@: %@", comment: "Successful inspection entry for a single dropped file"),
+                format: NSLocalizedString(
+                    "• %@: %@",
+                    comment:
+                        "Successful inspection entry for a single dropped file"
+                ),
                 locale: Locale.current,
                 resolvedURL.lastPathComponent,
                 labelText
@@ -29,7 +37,10 @@ struct InspectionResult: Equatable {
         }
 
         return String(
-            format: NSLocalizedString("• %@ → %@: %@", comment: "Successful inspection entry for a resolved app bundle"),
+            format: NSLocalizedString(
+                "• %@ → %@: %@",
+                comment: "Successful inspection entry for a resolved app bundle"
+            ),
             locale: Locale.current,
             droppedURL.lastPathComponent,
             resolvedURL.lastPathComponent,
@@ -40,19 +51,25 @@ struct InspectionResult: Equatable {
     var alertMessage: String {
         if droppedURL.standardizedFileURL == resolvedURL.standardizedFileURL {
             return String(
-                format: NSLocalizedString("%@ supports: %@.", comment: "Supported architectures"),
+                format: NSLocalizedString(
+                    "%@ supports: %@.",
+                    comment: "Supported architectures"
+                ),
                 locale: Locale.current,
                 resolvedURL.lastPathComponent,
                 labelText
             )
         }
 
-//        return """
-//        Resolved \(droppedURL.lastPathComponent) to \(resolvedURL.lastPathComponent).
-//        Architectures: \(labelText).
-//        """
+        //        return """
+        //        Resolved \(droppedURL.lastPathComponent) to \(resolvedURL.lastPathComponent).
+        //        Architectures: \(labelText).
+        //        """
         return String(
-            format: NSLocalizedString("%@ supports %@.", comment: "Supported architectures"),
+            format: NSLocalizedString(
+                "%@ supports %@.",
+                comment: "Supported architectures"
+            ),
             locale: Locale.current,
             resolvedURL.lastPathComponent,
             labelText
@@ -70,30 +87,48 @@ enum ArchitectureInspectionError: LocalizedError, Equatable {
 
     var errorDescription: String? {
         switch self {
-        case let .fileNotFound(url):
+        case .fileNotFound(let url):
             return String(
-                format: NSLocalizedString("The dropped item could not be found at %@.", comment: "Dropped item not found"),
+                format: NSLocalizedString(
+                    "The dropped item could not be found at %@.",
+                    comment: "Dropped item not found"
+                ),
                 locale: Locale.current,
                 url.path
             )
-        case let .unsupportedContainer(url):
+        case .unsupportedContainer(let url):
             return String(
-                format: NSLocalizedString("Drop a Mach-O executable, library, or a .app bundle. %@ is not supported.", comment: "No executable, library or app"),
+                format: NSLocalizedString(
+                    "Drop a Mach-O executable, library, or a .app bundle. %@ is not supported.",
+                    comment: "No executable, library or app"
+                ),
                 locale: Locale.current,
                 url.lastPathComponent
             )
-        case let .missingBundleExecutable(url):
+        case .missingBundleExecutable(let url):
             return String(
-                format: NSLocalizedString("Couldn't locate an executable inside %@. Drop the app's binary from Contents/MacOS instead.", comment: "No executable"),
+                format: NSLocalizedString(
+                    "Couldn't locate an executable inside %@. Drop the app's binary from Contents/MacOS instead.",
+                    comment: "No executable"
+                ),
                 locale: Locale.current,
                 url.lastPathComponent
             )
         case .unsupportedFileFormat:
-            return NSLocalizedString("The dropped file is not a supported Mach-O executable or library.", comment: "No Mach-O file")
+            return NSLocalizedString(
+                "The dropped file is not a supported Mach-O executable or library.",
+                comment: "No Mach-O file"
+            )
         case .fileTooSmall:
-            return NSLocalizedString("The dropped file is too small to contain a valid Mach-O header.", comment: "File too small")
+            return NSLocalizedString(
+                "The dropped file is too small to contain a valid Mach-O header.",
+                comment: "File too small"
+            )
         case .unsupportedArchitectureSet:
-            return NSLocalizedString("No supported Intel/Silicon architecture information is available for this file.", comment: "Unsupported architecture set")
+            return NSLocalizedString(
+                "No supported Intel/Silicon architecture information is available for this file.",
+                comment: "Unsupported architecture set"
+            )
         }
     }
 }
@@ -121,18 +156,30 @@ enum ArchitectureInspector {
         let rawArchitectures: [String]
 
         switch format {
-        case let .thin(byteOrder):
-            rawArchitectures = try [architectureName(
-                cpuType: data.readInt32(at: 4, byteOrder: byteOrder),
-                cpuSubtype: data.readInt32(at: 8, byteOrder: byteOrder)
-            )]
-        case let .fat32(byteOrder):
-            rawArchitectures = try architecturesFromFatBinary(data: data, byteOrder: byteOrder, entrySize: 20)
-        case let .fat64(byteOrder):
-            rawArchitectures = try architecturesFromFatBinary(data: data, byteOrder: byteOrder, entrySize: 32)
+        case .thin(let byteOrder):
+            rawArchitectures = try [
+                architectureName(
+                    cpuType: data.readInt32(at: 4, byteOrder: byteOrder),
+                    cpuSubtype: data.readInt32(at: 8, byteOrder: byteOrder)
+                )
+            ]
+        case .fat32(let byteOrder):
+            rawArchitectures = try architecturesFromFatBinary(
+                data: data,
+                byteOrder: byteOrder,
+                entrySize: 20
+            )
+        case .fat64(let byteOrder):
+            rawArchitectures = try architecturesFromFatBinary(
+                data: data,
+                byteOrder: byteOrder,
+                entrySize: 32
+            )
         }
 
-        guard let displayLabel = displayArchitectureLabel(from: rawArchitectures) else {
+        guard
+            let displayLabel = displayArchitectureLabel(from: rawArchitectures)
+        else {
             throw ArchitectureInspectionError.unsupportedArchitectureSet
         }
 
@@ -148,7 +195,7 @@ enum ArchitectureInspector {
         var result: [String] = []
         var seen = Set<String>()
 
-        for index in 0 ..< count {
+        for index in 0..<count {
             let offset = 8 + (index * entrySize)
             let architecture = try architectureName(
                 cpuType: data.readInt32(at: offset, byteOrder: byteOrder),
@@ -167,7 +214,9 @@ enum ArchitectureInspector {
         return result
     }
 
-    private static func architectureName(cpuType: Int32, cpuSubtype: Int32) -> String {
+    private static func architectureName(cpuType: Int32, cpuSubtype: Int32)
+        -> String
+    {
         let subtype = UInt32(bitPattern: cpuSubtype) & 0x00FF_FFFF
 
         switch cpuType {
@@ -197,7 +246,9 @@ enum ArchitectureInspector {
         }
     }
 
-    private static func displayArchitectureLabel(from architectures: [String]) -> String? {
+    private static func displayArchitectureLabel(from architectures: [String])
+        -> String?
+    {
         guard !architectures.isEmpty else {
             return nil
         }
@@ -220,15 +271,24 @@ enum ArchitectureInspector {
         }
 
         if hasIntel, hasSilicon {
-            return NSLocalizedString("Intel and Silicon", comment: "Both Intel and Silicon architectures")
+            return NSLocalizedString(
+                "Intel and Silicon",
+                comment: "Both Intel and Silicon architectures"
+            )
         }
 
         if hasIntel {
-            return NSLocalizedString("Intel only", comment: "Intel architecture only")
+            return NSLocalizedString(
+                "Intel only",
+                comment: "Intel architecture only"
+            )
         }
 
         if hasSilicon {
-            return NSLocalizedString("Silicon only", comment: "Silicon architecture only")
+            return NSLocalizedString(
+                "Silicon only",
+                comment: "Silicon architecture only"
+            )
         }
 
         return nil
@@ -239,12 +299,16 @@ enum DroppedBinaryResolver {
     static func resolve(url: URL) throws -> URL {
         let standardizedURL = url.standardizedFileURL
 
-        guard FileManager.default.fileExists(atPath: standardizedURL.path) else {
+        guard FileManager.default.fileExists(atPath: standardizedURL.path)
+        else {
             throw ArchitectureInspectionError.fileNotFound(standardizedURL)
         }
 
         var isDirectory: ObjCBool = false
-        _ = FileManager.default.fileExists(atPath: standardizedURL.path, isDirectory: &isDirectory)
+        _ = FileManager.default.fileExists(
+            atPath: standardizedURL.path,
+            isDirectory: &isDirectory
+        )
 
         guard isDirectory.boolValue else {
             return standardizedURL
@@ -258,15 +322,22 @@ enum DroppedBinaryResolver {
     }
 
     private static func resolveAppBundle(url: URL) throws -> URL {
-        let contentsURL = url.appendingPathComponent("Contents", isDirectory: true)
-        let macOSDirectoryURL = contentsURL.appendingPathComponent("MacOS", isDirectory: true)
+        let contentsURL = url.appendingPathComponent(
+            "Contents",
+            isDirectory: true
+        )
+        let macOSDirectoryURL = contentsURL.appendingPathComponent(
+            "MacOS",
+            isDirectory: true
+        )
         let infoPlistURL = contentsURL.appendingPathComponent("Info.plist")
 
-        if
-            let executableName = try executableName(from: infoPlistURL),
+        if let executableName = try executableName(from: infoPlistURL),
             !executableName.isEmpty
         {
-            let executableURL = macOSDirectoryURL.appendingPathComponent(executableName)
+            let executableURL = macOSDirectoryURL.appendingPathComponent(
+                executableName
+            )
             if FileManager.default.fileExists(atPath: executableURL.path) {
                 return executableURL
             }
@@ -278,7 +349,8 @@ enum DroppedBinaryResolver {
             options: [.skipsHiddenFiles]
         )
         .filter { candidate in
-            ((try? candidate.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false) == false
+            ((try? candidate.resourceValues(forKeys: [.isDirectoryKey])
+                .isDirectory) ?? false) == false
         }
 
         if candidates.count == 1, let candidate = candidates.first {
@@ -288,13 +360,17 @@ enum DroppedBinaryResolver {
         throw ArchitectureInspectionError.missingBundleExecutable(url)
     }
 
-    private static func executableName(from infoPlistURL: URL) throws -> String? {
+    private static func executableName(from infoPlistURL: URL) throws -> String?
+    {
         guard FileManager.default.fileExists(atPath: infoPlistURL.path) else {
             return nil
         }
 
         let data = try Data(contentsOf: infoPlistURL)
-        let propertyList = try PropertyListSerialization.propertyList(from: data, format: nil)
+        let propertyList = try PropertyListSerialization.propertyList(
+            from: data,
+            format: nil
+        )
         let dictionary = propertyList as? [String: Any]
         return dictionary?["CFBundleExecutable"] as? String
     }
@@ -336,8 +412,10 @@ private enum ByteOrder {
     case big
 }
 
-private extension Data {
-    func readUInt32(at offset: Int, byteOrder: ByteOrder) throws -> UInt32 {
+extension Data {
+    fileprivate func readUInt32(at offset: Int, byteOrder: ByteOrder) throws
+        -> UInt32
+    {
         guard count >= offset + 4 else {
             throw ArchitectureInspectionError.fileTooSmall
         }
@@ -355,7 +433,9 @@ private extension Data {
         }
     }
 
-    func readInt32(at offset: Int, byteOrder: ByteOrder) throws -> Int32 {
+    fileprivate func readInt32(at offset: Int, byteOrder: ByteOrder) throws
+        -> Int32
+    {
         try Int32(bitPattern: readUInt32(at: offset, byteOrder: byteOrder))
     }
 }
